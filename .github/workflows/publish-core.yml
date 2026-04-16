@@ -34,6 +34,9 @@ jobs:
       - name: Build
         run: npm -w core run build
 
+      - name: Copy README
+        run: cp README.md core/README.md
+
       - name: Publish
         run: npm publish
         working-directory: core
