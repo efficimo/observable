@@ -1,0 +1,31 @@
+# Build
+core/dist/
+core/.test-out/
+react/dist/
+react/.test-out/
+
+# Dependencies
+node_modules/
+core/node_modules/
+react/node_modules/
+
+# IDE — VSCode
+.vscode/
+
+# IDE — JetBrains (WebStorm, IntelliJ...)
+.idea/
+*.iml
+
+# IDE — Vim/Neovim
+*.swp
+*.swo
+.nvimrc.local
+
+# IDE — Emacs
+*~
+\#*\#
+.dir-locals.el
+
+# OS
+.DS_Store
+Thumbs.db

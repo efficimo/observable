@@ -1,0 +1,42 @@
+name: Publish react to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install
+        run: npm ci
+
+      - name: Sync version from tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
+        working-directory: react
+
+      - name: Build core
+        run: npm -w core run build
+
+      - name: Typecheck
+        run: npm -w react run typecheck
+
+      - name: Build
+        run: npm -w react run build
+
+      - name: Publish
+        run: npm publish
+        working-directory: react

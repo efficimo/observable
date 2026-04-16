@@ -1,0 +1,63 @@
+{
+  "name": "@efficimo/observable-react",
+  "version": "0.0.0",
+  "description": "React bindings for @efficimo/observable: useObservableValueState hook.",
+  "author": "efficimo",
+  "license": "MIT",
+  "keywords": [
+    "observable",
+    "react",
+    "hooks",
+    "state",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/efficimo/observable.git"
+  },
+  "bugs": {
+    "url": "https://github.com/efficimo/observable/issues"
+  },
+  "homepage": "https://github.com/efficimo/observable#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node scripts/postbuild.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run typecheck"
+  },
+  "peerDependencies": {
+    "@efficimo/observable": ">=0.1.0",
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@efficimo/observable": "file:../core",
+    "@types/node": "^25.0.0",
+    "@types/react": "^18.0.0",
+    "react": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
