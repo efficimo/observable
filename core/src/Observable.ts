@@ -9,7 +9,7 @@ export interface ObservableInterface<Value> {
 
 export class Observable<Value> implements ObservableInterface<Value> {
   #subscriptions = [] as Subscriber<Value>[];
-  subscribe(subscriber: Subscriber<Value>) {
+  subscribe(subscriber: Subscriber<Value>): SubscriptionInterface {
     this.#subscriptions.push(subscriber);
 
     return new Subscription(() => {
@@ -17,7 +17,7 @@ export class Observable<Value> implements ObservableInterface<Value> {
     });
   }
 
-  next(value: Value) {
+  next(value: Value): void {
     for (const subscriber of this.#subscriptions) {
       subscriber(value);
     }

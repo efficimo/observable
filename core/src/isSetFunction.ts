@@ -1,4 +1,4 @@
-export type SetFunction<Value> = (prevValue: Value) => Value | Promise<Value>;
+export type SetFunction<Value> = (prevValue: Value) => Value;
 
 export const isSetFunction = <Value>(
   value: Value | SetFunction<Value>,

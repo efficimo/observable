@@ -29,18 +29,18 @@ const objectSchema = schema<{ page: number }>((v) => {
   return undefined;
 });
 
-test("JsonSerializeObservableValue — désérialise une string JSON", async () => {
+test("JsonSerializeObservableValue — désérialise une string JSON", () => {
   const raw = new ObservableValue<string | null>('{"page":2}');
   const obs = new JsonSerializeObservableValue(raw, objectSchema);
 
   assert.deepEqual(obs.getValue(), { page: 2 });
 });
 
-test("JsonSerializeObservableValue — sérialise une valeur vers string", async () => {
+test("JsonSerializeObservableValue — sérialise une valeur vers string", () => {
   const raw = new ObservableValue<string | null>(null);
   const obs = new JsonSerializeObservableValue(raw, objectSchema);
 
-  await obs.next({ page: 5 });
+  obs.next({ page: 5 });
   assert.equal(raw.getValue(), '{"page":5}');
 });
 
@@ -51,28 +51,28 @@ test("JsonSerializeObservableValue — null source → null valeur", () => {
   assert.equal(obs.getValue(), null);
 });
 
-test("JsonSerializeObservableValue — null valeur → null source", async () => {
+test("JsonSerializeObservableValue — null valeur → null source", () => {
   const raw = new ObservableValue<string | null>("42");
   const obs = new JsonSerializeObservableValue(raw, numberSchema);
 
-  await obs.next(null);
+  obs.next(null);
   assert.equal(raw.getValue(), null);
 });
 
-test("JsonSerializeObservableValue — JSON invalide → null (safeParse échoue)", async () => {
+test("JsonSerializeObservableValue — JSON invalide → null (safeParse échoue)", () => {
   const raw = new ObservableValue<string | null>('"not-a-number"');
   const obs = new JsonSerializeObservableValue(raw, numberSchema);
 
   assert.equal(obs.getValue(), null);
 });
 
-test("JsonSerializeObservableValue — mise à jour de raw propage au dérivé", async () => {
+test("JsonSerializeObservableValue — mise à jour de raw propage au dérivé", () => {
   const raw = new ObservableValue<string | null>(null);
   const obs = new JsonSerializeObservableValue(raw, numberSchema);
   const received: (number | null)[] = [];
 
   obs.subscribe((v) => received.push(v));
-  await raw.next("7");
+  raw.next("7");
 
   assert.deepEqual(received, [null, 7]);
 });

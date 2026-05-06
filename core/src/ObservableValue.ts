@@ -1,10 +1,11 @@
 import { isDeepEqual } from "./_utils";
 import { isSetFunction, type SetFunction } from "./isSetFunction";
 import { Observable, type ObservableInterface, type Subscriber } from "./Observable";
+import type { SubscriptionInterface } from "./Subscription";
 
 export interface ObservableValueInterface<Value> extends ObservableInterface<Value> {
   getValue: () => Value;
-  next: (value: Value | SetFunction<Value>) => Promise<void>;
+  next: (value: Value | SetFunction<Value>) => void;
 }
 
 export class ObservableValue<Value>
@@ -18,13 +19,13 @@ export class ObservableValue<Value>
     this.value = value;
   }
 
-  subscribe = (subscriber: Subscriber<Value>) => {
+  subscribe = (subscriber: Subscriber<Value>): SubscriptionInterface => {
     subscriber(this.value);
     return super.subscribe(subscriber);
   };
 
-  next = async (value: Value | SetFunction<Value>) => {
-    const newValue = isSetFunction(value) ? await value(this.value) : value;
+  next = (value: Value | SetFunction<Value>): void => {
+    const newValue = isSetFunction(value) ? value(this.value) : value;
 
     if (isDeepEqual(this.value, newValue)) {
       return;
@@ -34,7 +35,7 @@ export class ObservableValue<Value>
     super.next(newValue);
   };
 
-  getValue = () => {
+  getValue = (): Value => {
     return this.value;
   };
 }

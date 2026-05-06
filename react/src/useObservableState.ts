@@ -8,9 +8,9 @@ import { useEffect, useMemo, useState } from "react";
 
 const ObservableSetterFactory =
   <Value>(observable: ObservableValueInterface<Value>) =>
-  async (valueFromParam: Value | SetFunction<Value>): Promise<void> => {
+  (valueFromParam: Value | SetFunction<Value>): void => {
     const newValue = isSetFunction(valueFromParam)
-      ? await valueFromParam(observable.getValue())
+      ? valueFromParam(observable.getValue())
       : valueFromParam;
 
     observable.next(newValue);

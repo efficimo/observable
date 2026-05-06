@@ -2,6 +2,7 @@ import { getByPath, isDeepEqual, setByPath } from "./_utils";
 import type { SetFunction } from "./isSetFunction";
 import type { Subscriber } from "./Observable";
 import { ObservableValue, type ObservableValueInterface } from "./ObservableValue";
+import type { SubscriptionInterface } from "./Subscription";
 import type { ObjectPart, ObjectPaths } from "./types";
 
 type PartsMap = Record<string, ObservableValueInterface<unknown> | undefined>;
@@ -35,19 +36,19 @@ export class ObjectObservableValue<Value extends object | undefined | null>
     this.observable = isObservableValueInterface(value) ? value : new ObservableValue(value);
   }
 
-  subscribe = (subscriber: Subscriber<Value>) => {
+  subscribe = (subscriber: Subscriber<Value>): SubscriptionInterface => {
     return this.observable.subscribe(subscriber);
   };
 
-  next = async (value: Value | SetFunction<Value>) => {
-    return await this.observable.next(value);
+  next = (value: Value | SetFunction<Value>): void => {
+    this.observable.next(value);
   };
 
-  getValue = () => {
+  getValue = (): Value => {
     return this.observable.getValue();
   };
 
-  private pathToPartIndex = (path: ObjectPaths<Value> | string[]): string => {
+  private pathToPartIndex = (path: ObjectPaths<Value> | string[] | string): string => {
     if (typeof path === "string") {
       return path;
     }
@@ -55,7 +56,10 @@ export class ObjectObservableValue<Value extends object | undefined | null>
     return path.join(".");
   };
 
-  getPartObservable = (path: ObjectPaths<Value> | string[]) => {
+  getPartObservable = (
+    path: ObjectPaths<Value> | string[],
+    defaultValue?: ObjectPart<Value, typeof path>,
+  ): ObservableValueInterface<ObjectPart<Value, typeof path>> => {
     const partObservableIndex = this.pathToPartIndex(path);
     const parts = this.partsObservables as PartsMap;
 
@@ -63,30 +67,31 @@ export class ObjectObservableValue<Value extends object | undefined | null>
       return parts[partObservableIndex] as ObservableValueInterface<ObjectPart<Value, typeof path>>;
     }
 
+    const initialValue = getByPath(this.getValue(), path);
     const partObservable = new ObservableValue(
-      getByPath(this.getValue(), path) ?? {},
+      initialValue !== undefined ? initialValue : defaultValue,
     ) as unknown as ObservableValueInterface<ObjectPart<Value, typeof path>>;
 
     this.subscribe((newValue) => {
       if (this.syncingPaths.has(partObservableIndex)) return;
-      partObservable.next(getByPath(newValue, path) as ObjectPart<Value, typeof path>);
+      const pathValue = getByPath(newValue, path);
+      partObservable.next(
+        (pathValue !== undefined ? pathValue : defaultValue) as ObjectPart<Value, typeof path>,
+      );
     });
 
-    partObservable.subscribe(async (newPartValue) => {
+    partObservable.subscribe((newPartValue) => {
       if (this.syncingPaths.has(partObservableIndex)) return;
       if (isDeepEqual(getByPath(this.getValue(), path), newPartValue)) return;
       this.syncingPaths.add(partObservableIndex);
-      try {
-        await this.next((currentvalue) => {
-          const newValue = structuredClone(currentvalue ?? {}) as Exclude<Value, null | undefined>;
+      this.next((currentValue) => {
+        const newValue = structuredClone(currentValue ?? {}) as Exclude<Value, null | undefined>;
 
-          setByPath(newValue, path, newPartValue);
+        setByPath(newValue, path, newPartValue);
 
-          return newValue;
-        });
-      } finally {
-        this.syncingPaths.delete(partObservableIndex);
-      }
+        return newValue;
+      });
+      this.syncingPaths.delete(partObservableIndex);
     });
 
     parts[partObservableIndex] = partObservable as ObservableValueInterface<unknown>;
