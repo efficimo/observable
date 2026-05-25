@@ -1,10 +1,10 @@
 import {
-  isDeepEqual,
   isSetFunction,
   type ObservableValueInterface,
   type SetFunction,
 } from "@efficimo/observable";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useObservableSync } from "./useObservableSync";
 
 const ObservableSetterFactory =
   <Value>(observable: ObservableValueInterface<Value>) =>
@@ -19,16 +19,7 @@ const ObservableSetterFactory =
 export const useObservableValueState = <Value>(
   observable: ObservableValueInterface<Value>,
 ): [Value, ReturnType<typeof ObservableSetterFactory<Value>>] => {
-  const [state, setState] = useState<Value>(observable.getValue());
-
-  useEffect(() => {
-    const subscription = observable.subscribe((nextValue) => {
-      setState((prevState) => (!isDeepEqual(prevState, nextValue) ? nextValue : prevState));
-    });
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [observable]);
+  const state = useObservableSync(observable);
 
   return useMemo(() => [state, ObservableSetterFactory(observable)], [state, observable]);
 };
