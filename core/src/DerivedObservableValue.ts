@@ -1,4 +1,4 @@
-import { ObservableValue, type ObservableValueInterface } from "./ObservableValue";
+import { ObservableValue, type ObservableValueInterface } from "./ObservableValue.ts";
 
 type From<Value, DerivedValue> = (derivedValue: DerivedValue) => Value;
 type To<Value, DerivedValue> = (value: Value) => DerivedValue;

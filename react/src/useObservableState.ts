@@ -4,7 +4,7 @@ import {
   type SetFunction,
 } from "@efficimo/observable";
 import { useMemo } from "react";
-import { useObservableSync } from "./useObservableSync";
+import { useObservableSync } from "./useObservableSync.ts";
 
 const ObservableSetterFactory =
   <Value>(observable: ObservableValueInterface<Value>) =>

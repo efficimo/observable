@@ -1,9 +1,9 @@
-import { getByPath, isDeepEqual, setByPath } from "./_utils";
-import type { SetFunction } from "./isSetFunction";
-import type { Subscriber } from "./Observable";
-import { ObservableValue, type ObservableValueInterface } from "./ObservableValue";
-import type { SubscriptionInterface } from "./Subscription";
-import type { ObjectPart, ObjectPaths } from "./types";
+import { getByPath, isDeepEqual, setByPath } from "./_utils.ts";
+import type { SetFunction } from "./isSetFunction.ts";
+import type { Subscriber } from "./Observable.ts";
+import { ObservableValue, type ObservableValueInterface } from "./ObservableValue.ts";
+import type { SubscriptionInterface } from "./Subscription.ts";
+import type { ObjectPart, ObjectPaths } from "./types.ts";
 
 type PartsMap = Record<string, ObservableValueInterface<unknown> | undefined>;
 

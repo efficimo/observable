@@ -1,4 +1,4 @@
-import { Subscription, type SubscriptionInterface } from "./Subscription";
+import { Subscription, type SubscriptionInterface } from "./Subscription.ts";
 
 export type Subscriber<Value> = (nextValue: Value) => void;
 

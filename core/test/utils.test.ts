@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getByPath, isDeepEqual, setByPath } from "../src/_utils";
+import { getByPath, isDeepEqual, setByPath } from "../src/_utils.ts";
 
 // isDeepEqual
 test("isDeepEqual — primitives égaux", () => {

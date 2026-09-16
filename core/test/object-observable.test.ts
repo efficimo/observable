@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ObjectObservableValue, ObservableValue } from "../src/index";
+import { ObjectObservableValue, ObservableValue } from "../src/index.ts";
 
 test("ObjectObservableValue — getValue/subscribe/next sur l'objet entier", () => {
   const obs = new ObjectObservableValue({ a: 1, b: 2 });

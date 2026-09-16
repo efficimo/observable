@@ -1,2 +1,2 @@
-export * from "./useObservableState";
-export * from "./useObservableSync";
+export * from "./useObservableState.ts";
+export * from "./useObservableSync.ts";

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
   "files": {
     "includes": [
       "**",
@@ -9,13 +9,17 @@
       "!react/.test-out",
       "!core/node_modules",
       "!react/node_modules",
-      "!node_modules"
+      "!node_modules",
+      "!.claude"
     ]
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "preset": "recommended",
+      "correctness": {
+        "useImportExtensions": "error"
+      }
     }
   },
   "formatter": {

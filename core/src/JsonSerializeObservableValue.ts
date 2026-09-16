@@ -1,5 +1,5 @@
-import { DerivedObservableValue } from "./DerivedObservableValue";
-import type { ObservableValueInterface } from "./ObservableValue";
+import { DerivedObservableValue } from "./DerivedObservableValue.ts";
+import type { ObservableValueInterface } from "./ObservableValue.ts";
 
 /** Structural interface compatible with Zod, Valibot, and any library exposing safeParse. */
 export interface SafeParseSchema<Value> {

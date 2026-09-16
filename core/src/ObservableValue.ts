@@ -1,7 +1,7 @@
-import { isDeepEqual } from "./_utils";
-import { isSetFunction, type SetFunction } from "./isSetFunction";
-import { Observable, type ObservableInterface, type Subscriber } from "./Observable";
-import type { SubscriptionInterface } from "./Subscription";
+import { isDeepEqual } from "./_utils.ts";
+import { isSetFunction, type SetFunction } from "./isSetFunction.ts";
+import { Observable, type ObservableInterface, type Subscriber } from "./Observable.ts";
+import type { SubscriptionInterface } from "./Subscription.ts";
 
 export interface ObservableValueInterface<Value> extends ObservableInterface<Value> {
   getValue: () => Value;

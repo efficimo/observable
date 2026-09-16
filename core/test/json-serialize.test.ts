@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { JsonSerializeObservableValue, ObservableValue } from "../src/index";
+import { JsonSerializeObservableValue, ObservableValue } from "../src/index.ts";
 
 /** Mini-schema pour les tests — pas de dépendance zod. */
 function schema<T>(parse: (v: unknown) => T | undefined) {

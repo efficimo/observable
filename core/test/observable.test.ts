@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DerivedObservableValue, Observable, ObservableValue } from "../src/index";
+import { DerivedObservableValue, Observable, ObservableValue } from "../src/index.ts";
 
 test("Observable — notifie les subscribers", () => {
   const obs = new Observable<number>();
