@@ -34,8 +34,8 @@ jobs:
       - name: Build
         run: npm -w core run build
 
-      - name: Copy README
-        run: cp README.md core/README.md
+      - name: Copy README and LICENSE
+        run: cp README.md core/README.md && cp LICENSE core/LICENSE
 
       - name: Publish
         run: npm publish

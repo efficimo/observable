@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/npm/l/@efficimo/observable)](./LICENSE)
 [![types](https://img.shields.io/npm/types/@efficimo/observable)](https://www.npmjs.com/package/@efficimo/observable)
 
-> Lightweight observable state primitives for TypeScript: stateful values, bidirectional derived values, object path subscriptions, JSON serialization with Zod, and a React hook.
+> Lightweight observable state primitives for TypeScript: stateful values, bidirectional derived values, object path subscriptions, schema-validated JSON serialization, and a React hook. Zero runtime dependencies.
 
 ## Packages
 
@@ -24,7 +24,7 @@ The observer pattern is everywhere: event emitters, stores, reactive forms, URL 
 - **`ObservableValue`** — holds a current value, emits immediately on subscribe, supports functional setters, skips duplicate values via deep equality
 - **`DerivedObservableValue`** — bidirectional derived value: changes in the source propagate forward, changes in the derived propagate back
 - **`ObjectObservableValue`** — observe an object as a whole or any nested path independently, fully bidirectional
-- **`JsonSerializeObservableValue`** — bridge between a `string | null` observable (e.g. localStorage, URL params) and a typed value via Zod validation
+- **`JsonSerializeObservableValue`** — bridge between a `string | null` observable (e.g. localStorage, URL params) and a typed value, validated by any schema exposing `safeParse` (Zod, Valibot…)
 
 ## Installation
 
@@ -195,6 +195,21 @@ Returned by `subscribe()`.
 
 ---
 
+### `isDeepEqual(a, b)`
+
+The structural comparison used internally by `next()` to skip redundant notifications, exported for reuse.
+
+```typescript
+import { isDeepEqual } from '@efficimo/observable';
+
+isDeepEqual({ a: [1, 2] }, { a: [1, 2] }); // true
+isDeepEqual({ a: 1 }, { a: '1' });         // false
+```
+
+Recurses through plain objects and arrays, compares everything else by identity (`===`).
+
+---
+
 ## React bindings — `@efficimo/observable-react`
 
 ```bash
@@ -224,24 +239,53 @@ function Counter() {
 
 Multiple components subscribing to the same `ObservableValue` stay in sync automatically. The observable lives outside React — no context, no provider, no boilerplate.
 
+### `useObservableSync`
+
+Read-only counterpart: subscribes to an observable and returns its current value, without a setter. Built on `useSyncExternalStore`, so it is concurrent-safe and re-renders only when the value actually changes.
+
+```typescript
+import { useObservableSync } from '@efficimo/observable-react';
+
+function Display() {
+  const value = useObservableSync(count);
+
+  return <span>{value}</span>;
+}
+```
+
+Use it when a component only reads the observable — `useObservableValueState` is `useObservableSync` plus a `setState`-style setter.
+
 ---
 
 ## Local development
 
-```bash
-# build core first
-cd core && npm ci && npm run build
+This is an npm workspace: install once from the repository root, then drive each package with `-w`.
 
-# then work on react bindings
-cd ../react && npm ci && npm run typecheck
+```bash
+# install every workspace at once
+npm ci
+
+# core: typecheck, test, build
+npm -w core run typecheck
+npm -w core run test
+npm -w core run build
+
+# react bindings (build core first — they resolve it from ./core)
+npm -w react run typecheck
+npm -w react run build
+
+# lint and format the whole repo
+npm run lint
+npm run format
 ```
 
 ## Publishing
 
+Pushing a `v*` tag triggers both publish workflows; each syncs its version from the tag name.
+
 | Tag | Publishes |
 |---|---|
-| `v1.2.3` | `@efficimo/observable@1.2.3` |
-| `v1.2.3` | `@efficimo/observable-react@1.2.3` |
+| `v1.2.3` | `@efficimo/observable@1.2.3` and `@efficimo/observable-react@1.2.3` |
 
 ## License
 

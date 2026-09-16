@@ -37,8 +37,8 @@ jobs:
       - name: Build
         run: npm -w react run build
 
-      - name: Copy README
-        run: cp README.md react/README.md
+      - name: Copy LICENSE
+        run: cp LICENSE react/LICENSE
 
       - name: Publish
         run: npm publish
