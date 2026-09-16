@@ -21,7 +21,7 @@ The observer pattern is everywhere: event emitters, stores, reactive forms, URL 
 `@efficimo/observable` provides a minimal, composable set of primitives:
 
 - **`Observable`** — push notifications, no state
-- **`ObservableValue`** — holds a current value, emits immediately on subscribe, supports async setter functions, skips duplicate values via deep equality
+- **`ObservableValue`** — holds a current value, emits immediately on subscribe, supports functional setters, skips duplicate values via deep equality
 - **`DerivedObservableValue`** — bidirectional derived value: changes in the source propagate forward, changes in the derived propagate back
 - **`ObjectObservableValue`** — observe an object as a whole or any nested path independently, fully bidirectional
 - **`JsonSerializeObservableValue`** — bridge between a `string | null` observable (e.g. localStorage, URL params) and a typed value via Zod validation
@@ -46,13 +46,13 @@ const count = new ObservableValue(0);
 // subscribes and receives current value immediately
 count.subscribe(v => console.log('count:', v)); // count: 0
 
-await count.next(1);  // count: 1
+count.next(1);  // count: 1
 
 // functional setter (like React's setState)
-await count.next(prev => prev + 1);  // count: 2
+count.next(prev => prev + 1);  // count: 2
 
 // deep-equal check — no notification emitted
-await count.next(2);  // (silence)
+count.next(2);  // (silence)
 ```
 
 ---
@@ -86,15 +86,15 @@ new ObservableValue<Value>(initialValue)
 |---|---|
 | `getValue()` | Returns the current value. |
 | `subscribe(fn)` | Registers subscriber and **immediately calls it** with the current value. |
-| `next(value \| setter)` | Updates the value. Supports async setter `(prev) => newValue`. No-op if deep-equal to current. |
+| `next(value \| setter)` | Updates the value. Supports a setter function `(prev) => newValue`. No-op if deep-equal to current. |
 
 ```typescript
 const obs = new ObservableValue({ count: 0 });
 
 obs.subscribe(v => console.log(v)); // { count: 0 }
 
-await obs.next({ count: 1 });       // { count: 1 }
-await obs.next(prev => ({ ...prev, count: prev.count + 1 })); // { count: 2 }
+obs.next({ count: 1 });       // { count: 1 }
+obs.next(prev => ({ ...prev, count: prev.count + 1 })); // { count: 2 }
 ```
 
 ---
@@ -121,10 +121,10 @@ const asString = new DerivedObservableValue(
   s => Number(s),
 );
 
-await source.next(100);
+source.next(100);
 console.log(asString.getValue()); // "100"
 
-await asString.next("200");
+asString.next("200");
 console.log(source.getValue());   // 200
 ```
 
@@ -153,7 +153,7 @@ const state = new ObjectObservableValue<State>({ user: { name: 'Alice', age: 30 
 const nameObs = state.getPartObservable('user.name');
 nameObs.subscribe(name => console.log('name:', name)); // name: Alice
 
-await nameObs.next('Bob');
+nameObs.next('Bob');
 console.log(state.getValue().user.name); // Bob
 ```
 
@@ -176,10 +176,10 @@ import { ObservableValue, JsonSerializeObservableValue } from '@efficimo/observa
 const raw = new ObservableValue<string | null>(null);
 const filters = new JsonSerializeObservableValue(raw, z.object({ page: z.number() }));
 
-await raw.next('{"page":2}');
+raw.next('{"page":2}');
 console.log(filters.getValue()); // { page: 2 }
 
-await filters.next({ page: 3 });
+filters.next({ page: 3 });
 console.log(raw.getValue()); // '{"page":3}'
 ```
 
