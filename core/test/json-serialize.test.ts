@@ -76,3 +76,39 @@ test("JsonSerializeObservableValue — mise à jour de raw propage au dérivé",
 
   assert.deepEqual(received, [null, 7]);
 });
+
+test("JsonSerializeObservableValue — getValue rend la même référence tant que la source est inchangée", () => {
+  const raw = new ObservableValue<string | null>('{"page":2}');
+  const obs = new JsonSerializeObservableValue(raw, objectSchema);
+
+  // useSyncExternalStore impose un getSnapshot stable : une nouvelle référence à chaque appel
+  // ferait boucler le rendu.
+  assert.equal(obs.getValue(), obs.getValue());
+});
+
+test("JsonSerializeObservableValue — la référence est conservée si la valeur dérivée ne change pas", () => {
+  const raw = new ObservableValue<string | null>('{"page":2}');
+  const obs = new JsonSerializeObservableValue(raw, objectSchema);
+  const firstValue = obs.getValue();
+
+  raw.next('{"page": 2}');
+
+  assert.equal(obs.getValue(), firstValue);
+});
+
+test("JsonSerializeObservableValue — la construction n'écrit pas dans la source", () => {
+  const raw = new ObservableValue<string | null>(null);
+  const obs = new JsonSerializeObservableValue(raw, objectSchema, { page: 1 });
+
+  assert.equal(raw.getValue(), null);
+  assert.deepEqual(obs.getValue(), { page: 1 });
+});
+
+test("JsonSerializeObservableValue — la valeur par défaut s'applique aussi aux mises à jour", () => {
+  const raw = new ObservableValue<string | null>('{"page":2}');
+  const obs = new JsonSerializeObservableValue(raw, objectSchema, { page: 1 });
+
+  raw.next(null);
+
+  assert.deepEqual(obs.getValue(), { page: 1 });
+});

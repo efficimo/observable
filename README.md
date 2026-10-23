@@ -128,6 +128,22 @@ asString.next("200");
 console.log(source.getValue());   // 200
 ```
 
+The derived value is a **view** over its source: the source holds the state, the derived value is
+recomputed from it and memoized. `getValue()` returns the same reference as long as the source value
+is unchanged — what `useSyncExternalStore` requires of a snapshot. Constructing a derived value never
+writes to its source.
+
+**Subscription lifetime.** A derived value subscribes to its source only while it has subscribers of
+its own: the first subscriber attaches it, the last `unsubscribe()` detaches it. There is nothing to
+dispose — a derived value nobody observes anymore does not keep its source awake. While detached,
+`getValue()` still reflects the source, and `next()` still propagates to it.
+
+```typescript
+const derived = new DerivedObservableValue(source, from, to);  // source: 0 subscriber
+const subscription = derived.subscribe(fn);                    // source: 1 subscriber
+subscription.unsubscribe();                                    // source: 0 subscriber
+```
+
 ---
 
 ### `ObjectObservableValue<Value>`
