@@ -20,8 +20,12 @@ export class ObservableValue<Value>
   }
 
   subscribe = (subscriber: Subscriber<Value>): SubscriptionInterface => {
-    subscriber(this.value);
-    return super.subscribe(subscriber);
+    // Registers first: a subclass may resynchronize itself on its first subscriber, and the
+    // initial emission has to carry the value that resynchronization settled on.
+    const subscription = super.subscribe(subscriber);
+    subscriber(this.getValue());
+
+    return subscription;
   };
 
   next = (value: Value | SetFunction<Value>): void => {
