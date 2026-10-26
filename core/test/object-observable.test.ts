@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ObjectObservableValue, ObservableValue } from "../src/index.ts";
+import {
+  DerivedObservableValue,
+  ObjectObservableValue,
+  ObservableValue,
+  type Subscriber,
+  Subscription,
+  type SubscriptionInterface,
+} from "../src/index.ts";
 
 test("ObjectObservableValue — getValue/subscribe/next sur l'objet entier", () => {
   const obs = new ObjectObservableValue({ a: 1, b: 2 });
@@ -101,4 +108,129 @@ test("ObjectObservableValue — deux parts indépendantes", () => {
 
   assert.deepEqual(aValues, [1, 99]);
   assert.deepEqual(bValues, [10]);
+});
+
+/** Source équivalente à un ObservableValue, qui expose le nombre d'abonnements actifs. */
+const spySource = <Value>(initialValue: Value) => {
+  const inner = new ObservableValue(initialValue);
+  const spy = {
+    subscriptionCount: 0,
+    getValue: inner.getValue,
+    next: inner.next,
+    subscribe: (subscriber: Subscriber<Value>): SubscriptionInterface => {
+      spy.subscriptionCount += 1;
+      const subscription = inner.subscribe(subscriber);
+
+      return new Subscription(() => {
+        spy.subscriptionCount -= 1;
+        subscription.unsubscribe();
+      });
+    },
+  };
+
+  return spy;
+};
+
+test("ObjectObservableValue — une part ne s'abonne à l'observable enveloppé que tant qu'elle a des abonnés", () => {
+  const source = spySource({ a: 1 });
+  const obs = new ObjectObservableValue(source);
+  const part = obs.getPartObservable(["a"]);
+
+  assert.equal(source.subscriptionCount, 0);
+
+  const first = part?.subscribe(() => {});
+  assert.equal(source.subscriptionCount, 1);
+
+  const second = part?.subscribe(() => {});
+  assert.equal(source.subscriptionCount, 1);
+
+  first?.unsubscribe();
+  assert.equal(source.subscriptionCount, 1);
+
+  second?.unsubscribe();
+  assert.equal(source.subscriptionCount, 0);
+});
+
+test("ObjectObservableValue — une part sans abonné lit et écrit sans jamais s'abonner", () => {
+  const source = spySource({ a: 1 });
+  const obs = new ObjectObservableValue(source);
+  const part = obs.getPartObservable(["a"]);
+
+  assert.equal(source.subscriptionCount, 0);
+  assert.equal(part?.getValue(), 1);
+
+  // La lecture reste exacte quand la source change sous une part non observée.
+  source.next({ a: 2 });
+  assert.equal(part?.getValue(), 2);
+
+  // L'écriture atteint l'objet parent sans passer par un abonnement.
+  part?.next(3);
+  assert.deepEqual(source.getValue(), { a: 3 });
+  assert.equal(source.subscriptionCount, 0);
+});
+
+test("ObjectObservableValue — écrire dans une part notifie l'autre part, et l'autrice une seule fois", () => {
+  const obs = new ObjectObservableValue({ a: 1, b: 10 });
+  const aValues: number[] = [];
+  const bValues: number[] = [];
+
+  const partA = obs.getPartObservable("a");
+  const partB = obs.getPartObservable("b");
+  partA?.subscribe((v) => aValues.push(v as number));
+  partB?.subscribe((v) => bValues.push(v as number));
+
+  partA?.next(99);
+
+  assert.deepEqual(aValues, [1, 99]);
+  assert.deepEqual(bValues, [10]);
+  assert.deepEqual(obs.getValue(), { a: 99, b: 10 });
+});
+
+test("ObjectObservableValue — une part relâche la source dérivée qu'elle enveloppe", () => {
+  const source = spySource({ a: 1 });
+  const derived = new DerivedObservableValue<{ a: number }, { a: number }>(
+    source,
+    (value) => value,
+    (value) => value,
+  );
+  const obs = new ObjectObservableValue(derived);
+  const part = obs.getPartObservable(["a"]);
+
+  const subscription = part?.subscribe(() => {});
+  assert.equal(source.subscriptionCount, 1);
+
+  subscription?.unsubscribe();
+  assert.equal(source.subscriptionCount, 0);
+});
+
+test("ObjectObservableValue — des consommateurs successifs ne laissent aucun abonnement derrière eux", () => {
+  const source = spySource({ a: 1 });
+
+  for (let consumer = 0; consumer < 5; consumer++) {
+    const derived = new DerivedObservableValue<{ a: number }, { a: number }>(
+      source,
+      (value) => value,
+      (value) => value,
+    );
+    const obs = new ObjectObservableValue(derived);
+    const part = obs.getPartObservable(["a"]);
+
+    part?.subscribe(() => {}).unsubscribe();
+  }
+
+  assert.equal(source.subscriptionCount, 0);
+});
+
+test("ObjectObservableValue — une part se réabonne après un détachement complet", () => {
+  const source = spySource({ a: 1 });
+  const obs = new ObjectObservableValue(source);
+  const part = obs.getPartObservable(["a"]);
+  part?.subscribe(() => {}).unsubscribe();
+
+  const received: number[] = [];
+  part?.subscribe((v) => received.push(v as number));
+  source.next({ a: 2 });
+
+  assert.equal(source.subscriptionCount, 1);
+  assert.deepEqual(received, [1, 2]);
 });
