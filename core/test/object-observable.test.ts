@@ -234,3 +234,38 @@ test("ObjectObservableValue — une part se réabonne après un détachement com
   assert.equal(source.subscriptionCount, 1);
   assert.deepEqual(received, [1, 2]);
 });
+
+test("ObjectObservableValue — getValue() d'une part garde la même référence tant que la part ne change pas", () => {
+  const obs = new ObjectObservableValue({ a: { x: 1 }, b: 2 });
+  const partA = obs.getPartObservable(["a"]);
+  const partB = obs.getPartObservable(["b"]);
+  const notified: unknown[] = [];
+
+  partA?.subscribe((v) => notified.push(v));
+  const before = partA?.getValue();
+
+  // Écrire dans une autre part reconstruit l'objet parent, donc remplace la référence
+  // de `a` par une copie deep-equal : la part A n'a pas changé pour autant.
+  partB?.next(3);
+
+  assert.ok(Object.is(partA?.getValue(), before));
+  assert.equal(notified.length, 1);
+});
+
+test("ObjectObservableValue — getValue() d'une part suit le parent sans abonné et reste stable", () => {
+  const source = spySource({ a: { x: 1 } });
+  const obs = new ObjectObservableValue(source);
+  const part = obs.getPartObservable(["a"]);
+
+  const before = part?.getValue();
+  assert.deepEqual(before, { x: 1 });
+
+  // Une valeur deep-equal ne doit pas changer la référence rendue…
+  source.next({ a: { x: 1 }, extra: true } as unknown as { a: { x: number } });
+  assert.ok(Object.is(part?.getValue(), before));
+
+  // …mais un vrai changement doit être visible.
+  source.next({ a: { x: 2 } });
+  assert.deepEqual(part?.getValue(), { x: 2 });
+  assert.equal(source.subscriptionCount, 0);
+});
