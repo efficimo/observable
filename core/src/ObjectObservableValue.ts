@@ -36,10 +36,10 @@ const readPart = <PartValue>(
 /**
  * Bidirectional view over one `path` of a parent object observable, which holds the state: the
  * part is read back from the parent and memoized, so `getValue()` stays exact — and stable by
- * reference — whether or not this observable has subscribers. The subscription to the parent only lives as long as this part is itself
- * subscribed to, so a part that nobody observes anymore does not keep the parent — nor, through
- * it, whatever the parent wraps — awake. The `value` field inherited from `ObservableValue` is
- * never read.
+ * reference — whether or not this observable has subscribers. The subscription to the parent
+ * only lives as long as this part is itself subscribed to, so a part that nobody observes
+ * anymore does not keep the parent — nor, through it, whatever the parent wraps — awake. The
+ * `value` field inherited from `ObservableValue` is never read.
  */
 class PartObservableValue<
   ParentValue extends object | undefined | null,
