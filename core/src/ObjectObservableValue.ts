@@ -35,11 +35,11 @@ const readPart = <PartValue>(
 
 /**
  * Bidirectional view over one `path` of a parent object observable, which holds the state: the
- * part is read back from the parent, so `getValue()` stays exact whether or not this observable
- * has subscribers. The subscription to the parent only lives as long as this part is itself
- * subscribed to, so a part that nobody observes anymore does not keep the parent — nor, through
- * it, whatever the parent wraps — awake. The `value` field inherited from `ObservableValue` is
- * never read.
+ * part is read back from the parent and memoized, so `getValue()` stays exact — and stable by
+ * reference — whether or not this observable has subscribers. The subscription to the parent
+ * only lives as long as this part is itself subscribed to, so a part that nobody observes
+ * anymore does not keep the parent — nor, through it, whatever the parent wraps — awake. The
+ * `value` field inherited from `ObservableValue` is never read.
  */
 class PartObservableValue<
   ParentValue extends object | undefined | null,
@@ -65,8 +65,19 @@ class PartObservableValue<
     this.#partValue = partValue;
   }
 
+  /** Reads through to the parent, and keeps the previous reference when the part is unchanged. */
+  #read = (parentValue: ParentValue): PartValue => {
+    const partValue = readPart<PartValue>(parentValue, this.#path, this.#defaultValue);
+
+    if (!isDeepEqual(partValue, this.#partValue)) {
+      this.#partValue = partValue;
+    }
+
+    return this.#partValue;
+  };
+
   getValue = (): PartValue => {
-    return readPart<PartValue>(this.#parent.getValue(), this.#path, this.#defaultValue);
+    return this.#read(this.#parent.getValue());
   };
 
   next = (value: PartValue | SetFunction<PartValue>): void => {
@@ -94,10 +105,9 @@ class PartObservableValue<
   protected onFirstSubscriber(): void {
     this.#parentSubscription = this.#parent.subscribe((parentValue) => {
       const previousValue = this.#partValue;
-      const partValue = readPart<PartValue>(parentValue, this.#path, this.#defaultValue);
+      const partValue = this.#read(parentValue);
 
-      if (!isDeepEqual(partValue, previousValue)) {
-        this.#partValue = partValue;
+      if (!Object.is(partValue, previousValue)) {
         this.notify(partValue);
       }
     });
