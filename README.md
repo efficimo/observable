@@ -173,6 +173,19 @@ nameObs.next('Bob');
 console.log(state.getValue().user.name); // Bob
 ```
 
+A part is a **view** over its parent at `path`, with the same subscription lifetime as a derived
+value: it subscribes to the wrapped observable only while it has subscribers of its own. A part
+nobody observes anymore does not keep the wrapped observable — nor, through it, whatever that
+observable itself wraps — awake. While detached, `getValue()` still reads through to the parent,
+and `next()` still writes to it.
+
+```typescript
+const state = new ObjectObservableValue(source);  // source: 0 subscriber
+const nameObs = state.getPartObservable('user.name');
+const subscription = nameObs.subscribe(fn);       // source: 1 subscriber
+subscription.unsubscribe();                       // source: 0 subscriber
+```
+
 ---
 
 ### `JsonSerializeObservableValue<Value>`

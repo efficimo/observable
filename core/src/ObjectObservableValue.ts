@@ -1,5 +1,5 @@
 import { getByPath, isDeepEqual, setByPath } from "./_utils.ts";
-import type { SetFunction } from "./isSetFunction.ts";
+import { isSetFunction, type SetFunction } from "./isSetFunction.ts";
 import type { Subscriber } from "./Observable.ts";
 import { ObservableValue, type ObservableValueInterface } from "./ObservableValue.ts";
 import type { SubscriptionInterface } from "./Subscription.ts";
@@ -22,6 +22,93 @@ const isObservableValueInterface = <Value>(
   );
 };
 
+/** Reads `path` out of a parent value, falling back to `defaultValue` only when nothing is there. */
+const readPart = <PartValue>(
+  parentValue: unknown,
+  path: string | string[],
+  defaultValue: PartValue | undefined,
+): PartValue => {
+  const pathValue = getByPath(parentValue, path);
+
+  return (pathValue !== undefined ? pathValue : defaultValue) as PartValue;
+};
+
+/**
+ * Bidirectional view over one `path` of a parent object observable, which holds the state: the
+ * part is read back from the parent, so `getValue()` stays exact whether or not this observable
+ * has subscribers. The subscription to the parent only lives as long as this part is itself
+ * subscribed to, so a part that nobody observes anymore does not keep the parent — nor, through
+ * it, whatever the parent wraps — awake. The `value` field inherited from `ObservableValue` is
+ * never read.
+ */
+class PartObservableValue<
+  ParentValue extends object | undefined | null,
+  PartValue,
+> extends ObservableValue<PartValue> {
+  #parent: ObservableValueInterface<ParentValue>;
+  #path: string | string[];
+  #defaultValue: PartValue | undefined;
+  #partValue: PartValue;
+  #parentSubscription: SubscriptionInterface | null = null;
+
+  constructor(
+    parent: ObservableValueInterface<ParentValue>,
+    path: string | string[],
+    defaultValue?: PartValue,
+  ) {
+    const partValue = readPart<PartValue>(parent.getValue(), path, defaultValue);
+
+    super(partValue);
+    this.#parent = parent;
+    this.#path = path;
+    this.#defaultValue = defaultValue;
+    this.#partValue = partValue;
+  }
+
+  getValue = (): PartValue => {
+    return readPart<PartValue>(this.#parent.getValue(), this.#path, this.#defaultValue);
+  };
+
+  next = (value: PartValue | SetFunction<PartValue>): void => {
+    const currentValue = this.getValue();
+    const newPartValue = isSetFunction(value) ? value(currentValue) : value;
+
+    if (isDeepEqual(currentValue, newPartValue)) {
+      return;
+    }
+
+    // Writing to the parent is enough: while subscribed, the value comes back through
+    // #parentSubscription, which notifies our own subscribers.
+    this.#parent.next((currentParentValue) => {
+      const newParentValue = structuredClone(currentParentValue ?? {}) as Exclude<
+        ParentValue,
+        null | undefined
+      >;
+
+      setByPath(newParentValue, this.#path, newPartValue);
+
+      return newParentValue;
+    });
+  };
+
+  protected onFirstSubscriber(): void {
+    this.#parentSubscription = this.#parent.subscribe((parentValue) => {
+      const previousValue = this.#partValue;
+      const partValue = readPart<PartValue>(parentValue, this.#path, this.#defaultValue);
+
+      if (!isDeepEqual(partValue, previousValue)) {
+        this.#partValue = partValue;
+        this.notify(partValue);
+      }
+    });
+  }
+
+  protected onLastUnsubscribe(): void {
+    this.#parentSubscription?.unsubscribe();
+    this.#parentSubscription = null;
+  }
+}
+
 export class ObjectObservableValue<Value extends object | undefined | null>
   implements ObservableValueInterface<Value>
 {
@@ -30,7 +117,6 @@ export class ObjectObservableValue<Value extends object | undefined | null>
   } = {};
 
   private readonly observable: ObservableValueInterface<Value>;
-  private syncingPaths = new Set<string>();
 
   constructor(value: Value | ObservableValueInterface<Value>) {
     this.observable = isObservableValueInterface(value) ? value : new ObservableValue(value);
@@ -67,32 +153,11 @@ export class ObjectObservableValue<Value extends object | undefined | null>
       return parts[partObservableIndex] as ObservableValueInterface<ObjectPart<Value, typeof path>>;
     }
 
-    const initialValue = getByPath(this.getValue(), path);
-    const partObservable = new ObservableValue(
-      initialValue !== undefined ? initialValue : defaultValue,
+    const partObservable = new PartObservableValue(
+      this.observable,
+      path,
+      defaultValue,
     ) as unknown as ObservableValueInterface<ObjectPart<Value, typeof path>>;
-
-    this.subscribe((newValue) => {
-      if (this.syncingPaths.has(partObservableIndex)) return;
-      const pathValue = getByPath(newValue, path);
-      partObservable.next(
-        (pathValue !== undefined ? pathValue : defaultValue) as ObjectPart<Value, typeof path>,
-      );
-    });
-
-    partObservable.subscribe((newPartValue) => {
-      if (this.syncingPaths.has(partObservableIndex)) return;
-      if (isDeepEqual(getByPath(this.getValue(), path), newPartValue)) return;
-      this.syncingPaths.add(partObservableIndex);
-      this.next((currentValue) => {
-        const newValue = structuredClone(currentValue ?? {}) as Exclude<Value, null | undefined>;
-
-        setByPath(newValue, path, newPartValue);
-
-        return newValue;
-      });
-      this.syncingPaths.delete(partObservableIndex);
-    });
 
     parts[partObservableIndex] = partObservable as ObservableValueInterface<unknown>;
 
